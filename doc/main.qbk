@@ -1,0 +1,29 @@
+[/==============================================================================
+    Use, modification and distribution is subject to the Boost Software License,
+    Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[library Boost.SmartPtr.ProxyPtr
+    [quickbook 1.6]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+    [source-mode c++]
+]
+
+[h1 The [^entangled_ptr] and [^proxy_ptr] class templates]
+
+[warning This documents is just a proposal. Nothing described here makes
+ part of Boost C++ library.]
+
+[include proxy_ptr_rationale.qbk]
+[include proxy_ptr_tutorial.qbk]
+[include proxy_ptr_caveats.qbk]
+[include entangled_ptr_sypnosis.qbk]
+[include proxy_ptr_sypnosis.qbk]
+[include shared_handle.qbk]
+[include appendix.qbk]
+

@@ -1,0 +1,131 @@
+[/==============================================================================
+    Use, modification and distribution is subject to the Boost Software License,
+    Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section When and how _not_ to use them]
+
+[h3 Cyclic references]
+
+Because [^entangled_ptr] is so similar to [^weak_ptr] you might have
+thought that it could be used to solve cyclic references as well.
+But no, this role still belongs to [^weak_ptr] only.
+
+There are different cases that we can consider. If, for example,
+an object =A= has =entangled_ptr= pointing to an object =B=,
+and =B= has a =shared_ptr= to =A= then this is enough to prevent
+their destruction when the external world cease to reference them
+if =B= has any =proxy_ptr= pointing to any usable object,
+as it is likely to have.
+
+Let's consider another case: both =A= and =B= use =entangled_ptr=
+to reference each other, then you again might have problem if both
+have =proxy_ptr= to other objects. And if they use instead =proxy_ptr= 
+to reference each other, then its even worse. Because as soon as the
+use count of either =A= or =B= became non zero for the first time,
+both thse two =proxy_ptr= will act just like two cyclic=shared_ptr=.
+
+Perhaps a valid combination could be: =A= has a =entangled_ptr= to
+=B= which has a =proxy_ptr= to =A=. This can work, but only if you
+ensure that =A= has not been created with =make_entangled=.
+
+Anyway the recomendation is to solve cyclic reference with [^weak_ptr]
+only, unless you are sure you know what you are doing.
+
+[h3 [^proxy_ptr] during constrution and desctruction]
+
+As already mentioned, a [^proxy_ptr] instance must not be used
+during the construction nor during the destruction of the object
+that contains it. During these periods, [^proxy_ptr] does not
+increment the use count of its targets which may hence be unsable,
+or even already destroyed.
+
+[h3 [^proxy_ptr] in subobjects or contained object]
+
+In multithread environments, a [^proxy_ptr<T>] instance must be
+constructed and destructed during the constrution and desctruction,
+respectively, of the object that contains it.
+This is naturally accomplished when the =proxy_ptr<T>= instance
+is a direct member of the object.
+But it may not be case if it belong to some subobject or contained object.
+For example:
+``
+  // not ok
+  class delayed_foo_construction
+  {
+  public:
+    delayed_foo_construction(boost::entangled_init eini, boost::entangled_ptr<Bar> b):
+      m_ent_ini(eini),
+      m_bar(b)
+    {}
+  
+    Foo& get_Foo()
+    {
+      if( ! m_foo)
+      { 
+        // BAD: proxy_ptr inside m_bar constructed at wrong moment.
+   
+        m_foo.reset(new Foo(m_ent_ini, m_bar));
+      }
+      return * m_foo;
+    }
+  
+  private:
+    std::unique_ptr<Foo> m_foo;
+    boost::entangled_init m_ent_ini;
+    boost::entangled_ptr<Bar> m_bar;
+  };
+
+
+  // not ok
+  class premature_foo_destruction
+  {
+  public:
+    premature_foo_destruction(boost::entangled_init eini, boost::entangled_ptr<Bar> b):
+      m_foo(new Foo(eini, b))
+    {}
+ 
+    void reset()
+    {
+      // BAD: proxy_ptr inside m_bar destructed at wrong moment.
+      m_foo.reset();
+    }
+
+  private:
+    std::unique_ptr<Foo> m_foo;
+  };
+``
+The classes above fail to follow this rule. This doesn't mean that contained
+objects can't contain =proxy_ptr= instances. For example, the classes below are fine:
+``
+  // inheritance - ok
+  class derived_from_Foo: public Foo
+  {
+  public:
+    derived_from_Foo(boost::entangled_init eini, boost::entangled_ptr<Bar> b): Foo(eini, b) {}
+  };
+  
+  
+  // member object - ok
+  class containing_Foo
+  {
+  public:
+    containing_Foo(boost::entangled_init eini, boost::entangled_ptr<Bar> b): m_foo(eini, b) {}
+  private:
+    Foo m_foo;
+  };
+  
+  // composition through std::unique_ptr - ok ( in this case )
+  class containing_proxy_ptr_Foo
+  {
+  public
+     containing_proxy_ptr_Foo(boost::entangled_init eini, boost::entangled_ptr<Bar> b):
+      m_foo(new Foo(eini, b))
+    {}
+  
+  private:
+    std::unique_ptr<Foo> m_foo;
+  };
+``
+[endsect]

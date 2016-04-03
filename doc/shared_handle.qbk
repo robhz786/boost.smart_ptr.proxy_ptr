@@ -1,0 +1,289 @@
+[/==============================================================================
+    Use, modification and distribution is subject to the Boost Software License,
+    Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section The [^entangled_init], [^shared_init] and [^shared_handle] classes]
+
+The [^entangled_init] class has been primaly been created in order to establish
+how [^proxy_ptr]'s instances are constructed. However its has other uses as well.
+It can only be used in objects instantiated with [^make_soft] function template,
+or, as explained earlier, in components of such objects.
+Analogously, =shared_init= can only be used in objects or in components of object
+instantiated by =make_shared=. Whilst =shared_handle= can be used in both cases.
+And analogous to =make_entangled=, =make_shared<T>= prefers to call a =T='s
+constructor where it can add a =shared_init= as the first argument, forwarding
+those it receive as the remaining one.
+
+[section Sypnosis]
+```
+  namespace boost {
+      class entangled_init {
+      public:
+          entangled_init(const entangled_init&);
+        
+          template <typename T>
+          shared_ptr<T> reinterpret_as_shared_ptr(T*);
+        
+          template <typename T>
+          shared_ptr<const T> reinterpret_as_shared_ptr(const T*);
+        
+          template <typename T>
+          entangled_ptr<T> reinterpret_as_entangled_ptr(T*);
+        
+          template <typename T>
+          entangled_ptr<const T> reinterpret_as_entangled_ptr(const T*);
+        
+          template <typename T>
+          weak_ptr<T> reinterpret_as_weak_ptr(T*);
+        
+          template <typename T>
+          weak_ptr<const T> reinterpret_as_weak_ptr(const T*);
+      }; // entangled_init class
+    
+      class shared_init {
+      public:
+          shared_init(const shared_init&);
+        
+          template <typename T>
+          shared_ptr<T> reinterpret_as_shared_ptr(T*);
+        
+          template <typename T>
+          shared_ptr<const T> reinterpret_as_shared_ptr(const T*);
+        
+          template <typename T>
+          entangled_ptr<T> reinterpret_as_entangled_ptr(T*);
+        
+          template <typename T>
+          entangled_ptr<const T> reinterpret_as_entangled_ptr(const T*);
+        
+          template <typename T>
+          weak_ptr<T> reinterpret_as_weak_ptr(T*);
+        
+          template <typename T>
+          weak_ptr<const T> reinterpret_as_weak_ptr(const T*);
+      }; // shared_init class
+    
+      class shared_handle {
+      public:
+          shared_handle(const shared_handle&);
+          shared_handle(const shared_init&);
+          shared_handle(const entangled_init&);
+        
+          template <typename T>
+          shared_ptr<T> reinterpret_as_shared_ptr(T*);
+        
+          template <typename T>
+          shared_ptr<const T> reinterpret_as_shared_ptr(const T*);
+        
+          template <typename T>
+          entangled_ptr<T> reinterpret_as_entangled_ptr(T*);
+        
+          template <typename T>
+          entangled_ptr<const T> reinterpret_as_entangled_ptr(const T*);
+        
+          template <typename T>
+          weak_ptr<T> reinterpret_as_weak_ptr(T*);
+        
+          template <typename T>
+          weak_ptr<const T> reinterpret_as_weak_ptr(const T*);
+      }; // shared_handle class
+  } // namespace boost
+```
+[endsect]
+
+[section As an alternative to [^enable_shared_from_this]]
+
+An object can use the [^entangled_init] or [^shared_init] or [^shared_handle] with which
+it has been constructed in order to instantiate a [^shared_ptr] that points to itself:
+```
+  class some_class
+  {
+  public:
+      some_class(boost::shared_handle hdl): m_hdl(hdl) {}
+  
+      void test()
+      {
+          shared_ptr<some_class> sp_this = m_hdl.reinterpret_as_shared_ptr(this);
+          BOOST_ASSERT(sp_this.get() == this);
+      }
+  
+  private:
+      boost::shared_handle m_hdl;
+  };
+  
+```
+The use [^enable_shared_this] can painfull when you need to use inheritance as described
+[@http://stackoverflow.com/questions/12790859/bad-weak-pointer-when-base-and-derived-class-both-inherit-from-boostenable-sha here]. On the other hand, this is new solution is quite
+straightforward to deal with multiple inheritance: 
+```
+  class base_1
+  {
+  public:
+      base_1(boost::shared_handle hdl): m_hdl(hdl) {}
+  
+      void in_base_1()
+      {
+          shared_ptr<base_1> sp_this = m_hdl.reinterpret_as_shared_ptr(this);
+          //...
+      }
+  
+  private:
+      boost::shared_handle m_hdl;
+  };
+
+  class base_2
+  {
+  public:
+      base_2(boost::shared_handle hdl): m_hdl(hdl) {}
+  
+      void in_base_2()
+      {
+          shared_ptr<base_2> sp_this = m_hdl.reinterpret_as_shared_ptr(this);
+          // ...
+      }
+ 
+  private:
+      boost::shared_handle m_hdl;
+  };
+
+
+  class child_class: public base_1, public base_2
+  {
+  public:
+      child_class(boost::shared_handle hdl):
+          base_1(hdl),
+          base_2(hdl),
+          m_hdl(hdl)
+      {
+      }
+  
+      void in_child()
+      {
+          shared_ptr<child_class> sp_this = m_hdl.reinterpret_as_shared_ptr(this);
+          // ...
+      }
+    
+  private:
+      boost::shared_handle m_hdl;
+  };
+```
+
+[warning
+[^reinterpret_as_shared_ptr] member function template is not able to
+magically convert any pointer to the proper corresponding [^shared_ptr].
+The [^shared_ptr] it returns is associated with same object it took as
+argument, but also associated with the reference counter
+of the object constructed with this [^entangled_init] or [^shared_init].
+It's the [_user's responsibility] to ensure that one corresponds to the other.
+]
+
+[warning
+[^entangled_init], [^shared_init] and =shared_handle= instances must not be
+used during the destruction of the object that has been constructed with it.
+[^entangled_init::reinterpret_as_shared_ptr] must not be used during the
+construction.
+]
+
+[warning
+Dont store [^entangled_init], [^shared_init] and [^shared_init] member
+variables as references, for they become dangling. They are designed
+to the stored by value.
+]
+
+
+[endsect]
+
+[section Different objects managed by the same reference counters]
+
+You can also you [^reinterpret_as_shared_ptr] member function to instantiate
+a =shared_ptr= that points to a member object:
+``
+  class foo{}
+  
+  class bar {
+  public:
+      bar(boost::shared_handle hdl): m_hdl {}
+  
+      boost::shared_ptr<foo> get_foo()
+      {
+          return m_hdl.reinterpret_as_shared_ptr(&m_foo);
+      }
+  
+  private:
+      boost::shared_handle m_hdl;
+      foo m_foo;
+  }
+``
+The above solution is more efficient in term of memory, and performance
+that if the type =Bar::foo= would instead be =shared_ptr<Foo>=,
+because only one memory allocation is done in order to instantiate both
+=Bar= and =Foo=.
+
+But another advantage would also appear if that =Foo= had a cyclic reference
+to this =Bar=. If =Bar::foo= were =shared_ptr<Foo>= then it may happen
+that this =Bar= instance is destroyed before this =Foo= instance.
+This could lead to a dangling reference (if =Foo= used raw pointer to
+=Bar=), or to an unsuitable throw of exception ( if =Foo= used a
+=weak_ptr<Bar>=.
+
+However =foo= could also be a =std::unique_ptr<Foo>=. This could be
+used if =Foo= where some abstract class. But you have to ensure that
+the contained object (the =Foo= instance ) is destroyed during the 
+destruction of the container.
+
+[warning
+The argument passed to =reinterpret_as_shared_ptr=, =reinterpret_as_weak_ptr=
+and =reinterpret_as_entangled_ptr= member function templates must be nulll 
+or point to an object that will be destroyed during the destruction of the
+object that has been constructed by this =shared_handle= ( or =shared_init=,
+or =entangled_init= ) instance. For example:
+
+``
+  class buggy_bar {
+  public:
+      buggy_bar(boost::shared_handle hdl):
+          m_hdl(hdl)
+          m_foo(foo_factory())
+      {}
+  
+      boost::shared_ptr<foo> get_foo()
+      {
+          return m_hdl.reinterpret_as_shared_ptr(m_foo.get());
+      }
+  
+      void clear()
+      {
+          m_foo.clear(); // BAD: The shared_ptr<foo> returned from
+                         // get_foo() now is a dangling pointer
+      }
+  
+  private:
+      boost::shared_handle m_hdl;
+      std::unique_ptr<foo> m_foo;
+  };
+  
+  
+  class good_bar {
+  public:
+      good_bar(boost::shared_handle hdl):
+          m_hdl(hdl)
+          m_foo(foo_factory())
+      {}
+  
+      boost::shared_ptr<foo> get_foo()
+      {
+          return m_hdl.reinterpret_as_shared_ptr(m_foo.get());
+      }
+  
+  private:
+      boost::shared_handle m_hdl;
+      std::unique_ptr<foo> m_foo; // destroyed only in ~good_bar(), good.
+  };
+``
+]
+ 
+
+[endsect]
+[endsect]

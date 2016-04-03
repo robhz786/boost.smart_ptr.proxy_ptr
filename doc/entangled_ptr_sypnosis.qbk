@@ -1,0 +1,41 @@
+[/==============================================================================
+    Use, modification and distribution is subject to the Boost Software License,
+    Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+
+[section =entangled_ptr= sypnosis]
+``
+  namespace boost{
+      template <class T> class entangled_ptr{
+      public:
+          entangled_ptr();
+          entangled_ptr(const entangled_ptr&);
+          entangled_ptr(const entangled_ptr&&);
+          template <class Y> entangled_ptr(const entangled_ptr<Y>&&);
+          template <class Y> entangled_ptr(const entangled_ptr<Y>&);
+          template <class Y> entangled_ptr(const proxy_ptr<Y>&);
+          template <class Y> entangled_ptr(const shared_ptr<Y>&);
+          template <class Y> entangled_ptr(const weak_ptr<Y>&);
+      
+          ~entangled_ptr();
+          
+          entangled_ptr& operator=(const entangled_ptr&);
+          entangled_ptr& operator=(const entangled_ptr&&);
+          template <class Y> entangled_ptr<Y>& operator=(const entangled_ptr<Y>&);
+          template <class Y> entangled_ptr<Y>& operator=(const entangled_ptr<Y>&&);
+          template <class Y> entangled_ptr<Y>& operator=(const proxy_ptr<Y>&);
+          template <class Y> entangled_ptr<Y>& operator=(const shared_ptr<Y>&);
+          template <class Y> entangled_ptr<Y>& operator=(const weak_ptr<Y>&);
+      
+          long use_count() const;
+          void expired() const;
+          shared_ptr<T> lock() const;
+          void reset();
+          void swap(entangled_ptr&);
+      }; // entangled_ptr class template
+  } // namespace boost
+``
+[endsect]
+

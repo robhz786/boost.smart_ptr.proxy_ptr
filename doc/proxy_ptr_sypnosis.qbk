@@ -1,0 +1,56 @@
+[/==============================================================================
+    Use, modification and distribution is subject to the Boost Software License,
+    Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section =proxy_ptr= sypnosis]
+
+``
+  namespace boost{
+      template <class T> class proxy_ptr {
+      public:
+          proxy_ptr(entangled_handle);
+          proxy_ptr(entangled_handle, const proxy_ptr&);
+      
+          template <class Y> proxy_ptr(entangled_handle, const proxy_ptr<Y>&);
+          template <class Y> proxy_ptr(entangled_handle, const entangled_ptr<Y>&);
+          template <class Y> proxy_ptr(entangled_handle, const weak_ptr<Y>&);
+          template <class Y> proxy_ptr(entangled_handle, const shared_ptr<Y>&);
+       
+          proxy_ptr(entangled_handle, proxy_ptr&&);
+          template <class Y> proxy_ptr(entangled_handle, proxy_ptr<Y>&&);
+          template <class Y> proxy_ptr(entangled_handle, entangled_ptr<Y>&&);
+      
+          ~proxy_ptr();
+      
+          proxy_ptr& operator=(const proxy_ptr&);
+          proxy_ptr& operator=(const proxy_ptr&&);
+      
+          template <class Y> proxy_ptr<Y>& operator=(const proxy_ptr<Y>&);
+          template <class Y> proxy_ptr<Y>& operator=(const proxy_ptr<Y>&&);
+          template <class Y> proxy_ptr<Y>& operator=(const shared_ptr<Y>&);
+          template <class Y> proxy_ptr<Y>& operator=(const shared_ptr<Y>&&);
+      
+          void reset();
+      
+          T * get() const;
+      
+          shared_ptr<T> get_shared() const;
+          shared_ptr<T> move_to_shared() &&;
+      
+          T & operator*() const;  // only valid when T is not an array type
+          T * operator->() const; // only valid when T is not an array type
+      
+          element_type & operator[](std::ptrdiff_t i) const; //only valid when T is an array type
+      
+          long use_count() const;
+      
+          explicit operator bool() const;
+          
+          void swap(proxy_ptr&);
+      }; // class templace proxy_ptr
+  } // namespace boost
+``
+[endsect]
+

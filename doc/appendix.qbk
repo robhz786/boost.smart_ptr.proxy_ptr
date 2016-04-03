@@ -1,0 +1,60 @@
+[/==============================================================================
+    Use, modification and distribution is subject to the Boost Software License,
+    Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+
+[section Appendix - Implementation detail]
+
+[warning
+This is just a propose. There is actually no current implementation.
+This section just expose a broadly idea that the proposer had in mind.
+The final implementation will possibly be quite different,
+or may not even be possible ]
+
+As you probably already know or have deduced, when an object is managed
+by =shared_ptr=, =weak_ptr=, =entangled_ptr= or =proxy_ptr=, there must
+be some other underlying object that is responsible for keeping the stuffs
+related to such managment. Thing like the reference counters, the deleters, etc.
+Sometimes this object is referedes as /control block/.
+Now, when such underlying object is instantiated by =make_soft=,
+it is of a different type of the one instantiated by =make_shared=.
+Let's call these types as /entangled control block/ and /shared control
+block/, respectevely. Both types inherit from a single abstract class.
+Let's call it as /abstract control block/.
+The =shared_ptr=, =weak_ptr=, =entangled_ptr= and =proxy_ptr= instances 
+contains a pointer to the object they managed, and also to its
+corresponding /control block/. This pointer is of type
+/abstract control block/.
+
+Internally, =proxy_init= is basically just a pointer to a
+/entangled control block/.
+And the entangled control block contains a pointer to the first
+=proxy_ptr= instance that was constructed with the
+its corresponding =proxy_init=. And this =proxy_ptr=
+instance contains a pointer to the second one,
+and so on. It's a linked list. As a =proxy_ptr= 
+instance is constructed, it insert itsef into this
+list. That's why =proxy_ptr= constructor requires a
+=proxy_init=.
+
+Note that no additional memory allocation is needed to
+fill this list. After all, the nodes of the list -
+the =proxy_ptr= instances - are already in the
+memory block allocated for the managed object.
+Note also that this list is fill during the construction
+of the managed object, a period that we can assume that
+there is only one thread accessing it.
+After that, the list is never changed.
+
+The iteration over this list is also never supposed to be done by
+two thread at the same time. There are two situations that causes this.
+One is when the use count is incremented from zero to one.
+If a second thread also attemps to increment the used count meanwhile,
+it has to wait until the first thread finish its incremental.
+The other is when the use count is decremented from one to zero.
+
+
+[endsect]
+

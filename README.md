@@ -1,1 +1,1 @@
-# proxy_ptr
+There is no source code here. But just a documentation written in QuickBook of a proposed addition to Boost C++ library.

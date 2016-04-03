@@ -1,0 +1,60 @@
+[/==============================================================================
+    Use, modification and distribution is subject to the Boost Software License,
+    Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Rationale]
+
+Shared ownership is criticized for hindering determinism.
+It is generally agreed that if the destruction time of
+an object is expected to be deterministic, then it should
+have only one owner. But sometimes the object has to be
+managed by =shared_ptr=. Perhaps because it has to have
+multiple clients.
+
+The purpose of =entangled_ptr= and =proxy_ptr= smart pointers is
+to make possible /unique ownership with multifold clientship/ 
+to an object managed by =shared_ptr=. By that I mean that
+there are many clients, but only one, the one designated 
+as the owner, has a =shared_ptr= referencing the object.
+By client I usually mean an object, but perhaps it could also 
+mean an execution scope - like when the pointer is stack allocated.
+
+But for sake of feasibility, let's not consider the [^shared_ptr]
+instances that live very briefly, like those stack allocated 
+that are used by the functions to access the object.
+These are almost unavoidable. They may delay the destruction of object,
+but only sligtly, as long as we ensure their briefness.
+
+[/
+This document is not intended to guide you how to decide
+which of clients will be owner. This is up to you.
+The purpose here is just to help you to implement the
+non owner clients.
+]
+
+Now, the other clients that possibly live for long or unknown
+duration can't use =shared_ptr=, nor anything that block the
+destruction of the object.
+If you can afford to use [^weak_ptr], then the goal is achieved.
+The object is destroyed as soon as its owner is, or, as said,
+just a little bit later. However, when using [^weak_ptr],
+once the object has been destroyed, if the client can't
+handle this locally, then it basically has to either throw an
+exception or return an error code.
+You don't want to return a code because this complicates the
+implementation. Nor should you throw an exception, because this is not
+an exceptional circumstance, considerating that our goal is precisely
+to allow the object to be destroyed before the non owner client.
+And not only unsuitable, both solutions are sometimes even
+impossible, like when overriding a virtual function that promises
+not to throw this type of exception and not to return this code.
+
+So, unless you are in a cyclic reference, I propose you to use
+instead [^proxy_ptr] in non owner clients that can't handle the
+destruction of the object, and [^entangled_ptr] on those that can.
+The former kind of delegates the handling to the later.
+
+[endsect]
+

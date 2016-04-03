@@ -1,0 +1,150 @@
+[/==============================================================================
+    Use, modification and distribution is subject to the Boost Software License,
+    Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section How they work]
+
+Suppose a class Foo has a [^proxy_ptr<Bar>] instance member:
+
+```
+   class Bar;
+   
+   class Foo
+   {
+   public:
+       Foo(boost::entangled_init eini, boost::entangled_ptr<Bar> b): m_bar(eini, b) {}
+  
+       void do_something();
+       void do_something_else();
+
+   private:
+       boost::proxy_ptr<Bar> m_bar;
+   };
+```
+When a class contains any member of type [^proxy_ptr], like class =Foo= above,
+then the first parameter of its constructor must be of type [^entangled_init],
+which must be used to construct its =proxy_ptr= members.
+In order to instantiate a class like that you must use =make_entangled=
+function template.
+The =make_entangled<T>= function instatiates the class =T= by calling one
+of its constructor that can take a =entangled_init= as the first argument
+and take the arguments passed to =make_entangled<T>= as the remaining ones.
+If no such compatible constructor is available in class =T=,
+then =make_entangled<T>= tries instead a constructor that does not take
+the additional initial =entangled_init= argument.
+
+The return type of =make_entangled<T>= is =entangled_ptr<T>=, a class whose
+interface is very similiar to of =weak_ptr<T>=. The use count of this
+=T='s instance is initially equal to zero, since [^entangled_ptr] does
+not increment the use count of its targets. This may seem strange at
+first. Objects constructed with =make_entangled= are managed differently.
+They don't need a positive use count in order to stay alive
+because another reference counter comes into play in this case.
+We can call it /entangled count/. It is equal to the number
+of instances of [^proxy_ptr] and [^entangled_ptr] that point
+to the object. However, keeping the entangled count greater than
+zero is not enough to keep the object alive. And even if it is
+alive it does't mean it is usable. Its more complex than that.
+
+This may seem against determinism. But note that the
+aim of [^proxy_ptr] is to enable deterministic destruction
+of the object it points to, not of the object that contains it.
+You have to distinguish which classes require determinism and 
+which do not. [^make_entangled] can only be used to instantiate
+classes that do not require determinism.
+
+But, regardless of whether of these cathegories an object
+belong, and whether it is or not alive, its _usability_
+is still dictated by the use count. The object can only be
+safely used while its use count is greater than zero.
+And that's why, just like =weak_ptr<T>=, =entangled_ptr<T>=
+does not provide direct access to the object. You need to 
+instantiate a [^shared_ptr<Foo>]: 
+```
+   boost::shared_ptr<Bar> bar = boost::make_shared<Bar>();
+   boost::entangled_ptr<Foo> foo = boost::make_entangled<Foo>(bar);
+   BOOST_ASSERT(foo.use_count() == 0);
+   BOOST_ASSERT(bar.use_count() == 1);
+
+   if (boost::shared_ptr<Foo> locked_foo = foo.lock())
+   {
+       BOOST_ASSERT(foo.use_count() == 1);
+       BOOST_ASSERT(bar.use_count() == 2);
+
+       locked_foo->do_something();
+       locked_foo->do_something_else();
+   }
+   BOOST_ASSERT(foo.use_count() == 0);
+   BOOST_ASSERT(bar.use_count() == 1);
+```
+Inside that =if= block above, [^bar.use_count() == 2] because
+when the use count of any object =X= becames greater than zero
+then all =X='s non null [^proxy_ptr] members also increments the
+use count of the objects they point to, and only decrements it
+back when the use count of =X= becomes zero again.
+If any of such =proxy_ptr= instances is unable to increment
+the use count of its target, then this means it is not possible
+anymore to use object =X=. For example:
+```
+   boost::shared_ptr<Bar> bar = boost::make_shared<Bar>();
+   boost::entangled_ptr<Foo> foo = boost::make_entangled<Foo>(bar);
+
+   BOOST_ASSERT(foo.lock());
+   bar.reset();   // Now the Bar instance is destroyed.
+   BOOST_ASSERT(foo.lock() == NULL);
+```
+Conversely, the use count of this =Bar= instance is guarranteed to
+be non zero while the use count of this =Foo= instance is non zero.
+This is why [^proxy_ptr<T>] does't have a [^lock()] member function.
+It can afford to access the object directly at any moment, except
+during the construction and destruction of the object that contains it.
+```
+   void Foo::do_something() // can not be called by Foo::Foo and Foo::~Foo
+   {
+       BOOST_ASSERT(m_bar.use_count() > 0);
+       m_bar->foo();
+       m_bar->bar();
+   }
+```
+It is only possible to increment the use count of an object if, 
+and only if, the object satisfies at least one of these conditions:
+
+# Its use count is already greater than zero, or,
+# it satisfies _all_ of these conditions:
+  # It has been instantiated by [^make_entangled], and
+  # its entangled count is greater than zero, and
+  # all the non null [^proxy_ptr] instance member it contains point
+    to objects whose use count can be incremented.
+
+The object is destroyed as soon as any smart pointer detect
+that the object's use count cannot be incremented anymore.
+
+We can note a simetry between [^shared_ptr] and [^proxy_ptr].
+Let's call an object as /usable/ when its use count can be incremented.
+This way, when an object =X= has a [^shared_ptr] to an object =Y=,
+note that if =X= is usable then =Y= is usable.
+But when =X= has instead a [^proxy_ptr] to =Y= then the
+implication is that if =Y= is not usable then =X= is not usable.
+Once an object becomes unusable, so will immediately all the objects
+that have any =proxy_ptr= referencing it, and all the objects that
+have any =proxy_ptr= referencing any of these objectes, and so on.
+
+However note that an object containing =proxy_ptr= is not necessarily a non
+owner client. For example, consider the
+[@https://en.wikipedia.org/wiki/Adapter_pattern#Object_Adapter_pattern
+ Object Adapter design pattern].
+An adapter is not supposed to decide whether it owns or not the adaptee.
+It's responsability is just to adapt. 
+Hence, by using a =proxy_ptr= to reference the adaptee, the adapter
+delegates to its client such decision about the adaptee ownership
+If the adapter's client uses a =shared_ptr= to reference the adapter,
+/i.e./ if it owns the adapter, so will the adapter own the adaptee.
+If otherwise the adapter's client uses a =entangled_ptr=, then
+the adapter does't own the adaptee. And if the adapter's client uses a
+=proxy_ptr=, then it delegates even further, to the adapter's client's client.
+The [^proxy_ptr] reflects the kind of pointer that holds the object
+that contains it. Hence its name.
+
+[endsect]
