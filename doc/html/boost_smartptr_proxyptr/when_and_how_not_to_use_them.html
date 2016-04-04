@@ -1,0 +1,184 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>When and how not to use them</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.SmartPtr.ProxyPtr">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.SmartPtr.ProxyPtr">
+<link rel="prev" href="how_they_work.html" title="How they work">
+<link rel="next" href="entangled_ptr_sypnosis.html" title="entangled_ptr sypnosis">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="how_they_work.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="entangled_ptr_sypnosis.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_smartptr_proxyptr.when_and_how_not_to_use_them"></a><a class="link" href="when_and_how_not_to_use_them.html" title="When and how not to use them">When
+    and how <span class="underline">not</span> to use them</a>
+</h2></div></div></div>
+<h4>
+<a name="boost_smartptr_proxyptr.when_and_how_not_to_use_them.h0"></a>
+      <span class="phrase"><a name="boost_smartptr_proxyptr.when_and_how_not_to_use_them.cyclic_references"></a></span><a class="link" href="when_and_how_not_to_use_them.html#boost_smartptr_proxyptr.when_and_how_not_to_use_them.cyclic_references">Cyclic
+      references</a>
+    </h4>
+<p>
+      Because <code class="literal">entangled_ptr</code> is so similar to <code class="literal">weak_ptr</code>
+      you might have thought that it could be used to solve cyclic references as
+      well. But no, this role still belongs to <code class="literal">weak_ptr</code> only.
+    </p>
+<p>
+      There are different cases that we can consider. If, for example, an object
+      <code class="literal">A</code> has <code class="literal">entangled_ptr</code> pointing to an object
+      <code class="literal">B</code>, and <code class="literal">B</code> has a <code class="literal">shared_ptr</code>
+      to <code class="literal">A</code> then this is enough to prevent their destruction when
+      the external world cease to reference them if <code class="literal">B</code> has any
+      <code class="literal">proxy_ptr</code> pointing to any usable object, as it is likely
+      to have.
+    </p>
+<p>
+      Let's consider another case: both <code class="literal">A</code> and <code class="literal">B</code>
+      use <code class="literal">entangled_ptr</code> to reference each other, then you again
+      might have problem if both have <code class="literal">proxy_ptr</code> to other objects.
+      And if they use instead <code class="literal">proxy_ptr</code> to reference each other,
+      then its even worse. Because as soon as the use count of either <code class="literal">A</code>
+      or <code class="literal">B</code> became non zero for the first time, both thse two
+      <code class="literal">proxy_ptr</code> will act just like two cyclic=shared_ptr=.
+    </p>
+<p>
+      Perhaps a valid combination could be: <code class="literal">A</code> has a <code class="literal">entangled_ptr</code>
+      to <code class="literal">B</code> which has a <code class="literal">proxy_ptr</code> to <code class="literal">A</code>.
+      This can work, but only if you ensure that <code class="literal">A</code> has not been
+      created with <code class="literal">make_entangled</code>.
+    </p>
+<p>
+      Anyway the recomendation is to solve cyclic reference with <code class="literal">weak_ptr</code>
+      only, unless you are sure you know what you are doing.
+    </p>
+<h4>
+<a name="boost_smartptr_proxyptr.when_and_how_not_to_use_them.h1"></a>
+      <span class="phrase"><a name="boost_smartptr_proxyptr.when_and_how_not_to_use_them.proxy_ptr_during_constrution_and"></a></span><a class="link" href="when_and_how_not_to_use_them.html#boost_smartptr_proxyptr.when_and_how_not_to_use_them.proxy_ptr_during_constrution_and"><code class="literal">proxy_ptr</code>
+      during constrution and desctruction</a>
+    </h4>
+<p>
+      As already mentioned, a <code class="literal">proxy_ptr</code> instance must not be used
+      during the construction nor during the destruction of the object that contains
+      it. During these periods, <code class="literal">proxy_ptr</code> does not increment the
+      use count of its targets which may hence be unsable, or even already destroyed.
+    </p>
+<h4>
+<a name="boost_smartptr_proxyptr.when_and_how_not_to_use_them.h2"></a>
+      <span class="phrase"><a name="boost_smartptr_proxyptr.when_and_how_not_to_use_them.proxy_ptr_in_subobjects_or_conta"></a></span><a class="link" href="when_and_how_not_to_use_them.html#boost_smartptr_proxyptr.when_and_how_not_to_use_them.proxy_ptr_in_subobjects_or_conta"><code class="literal">proxy_ptr</code>
+      in subobjects or contained object</a>
+    </h4>
+<p>
+      In multithread environments, a <code class="literal">proxy_ptr&lt;T&gt;</code> instance
+      must be constructed and destructed during the constrution and desctruction,
+      respectively, of the object that contains it. This is naturally accomplished
+      when the <code class="literal">proxy_ptr&lt;T&gt;</code> instance is a direct member
+      of the object. But it may not be case if it belong to some subobject or contained
+      object. For example:
+    </p>
+<pre class="programlisting"><span class="comment">// not ok</span>
+<span class="keyword">class</span> <span class="identifier">delayed_foo_construction</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="identifier">delayed_foo_construction</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_init</span> <span class="identifier">eini</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="identifier">Bar</span><span class="special">&gt;</span> <span class="identifier">b</span><span class="special">):</span>
+    <span class="identifier">m_ent_ini</span><span class="special">(</span><span class="identifier">eini</span><span class="special">),</span>
+    <span class="identifier">m_bar</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span>
+  <span class="special">{}</span>
+
+  <span class="identifier">Foo</span><span class="special">&amp;</span> <span class="identifier">get_Foo</span><span class="special">()</span>
+  <span class="special">{</span>
+    <span class="keyword">if</span><span class="special">(</span> <span class="special">!</span> <span class="identifier">m_foo</span><span class="special">)</span>
+    <span class="special">{</span>
+      <span class="comment">// BAD: proxy_ptr inside m_bar constructed at wrong moment.</span>
+
+      <span class="identifier">m_foo</span><span class="special">.</span><span class="identifier">reset</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">Foo</span><span class="special">(</span><span class="identifier">m_ent_ini</span><span class="special">,</span> <span class="identifier">m_bar</span><span class="special">));</span>
+    <span class="special">}</span>
+    <span class="keyword">return</span> <span class="special">*</span> <span class="identifier">m_foo</span><span class="special">;</span>
+  <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">unique_ptr</span><span class="special">&lt;</span><span class="identifier">Foo</span><span class="special">&gt;</span> <span class="identifier">m_foo</span><span class="special">;</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_init</span> <span class="identifier">m_ent_ini</span><span class="special">;</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="identifier">Bar</span><span class="special">&gt;</span> <span class="identifier">m_bar</span><span class="special">;</span>
+<span class="special">};</span>
+
+
+<span class="comment">// not ok</span>
+<span class="keyword">class</span> <span class="identifier">premature_foo_destruction</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="identifier">premature_foo_destruction</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_init</span> <span class="identifier">eini</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="identifier">Bar</span><span class="special">&gt;</span> <span class="identifier">b</span><span class="special">):</span>
+    <span class="identifier">m_foo</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">Foo</span><span class="special">(</span><span class="identifier">eini</span><span class="special">,</span> <span class="identifier">b</span><span class="special">))</span>
+  <span class="special">{}</span>
+
+  <span class="keyword">void</span> <span class="identifier">reset</span><span class="special">()</span>
+  <span class="special">{</span>
+    <span class="comment">// BAD: proxy_ptr inside m_bar destructed at wrong moment.</span>
+    <span class="identifier">m_foo</span><span class="special">.</span><span class="identifier">reset</span><span class="special">();</span>
+  <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">unique_ptr</span><span class="special">&lt;</span><span class="identifier">Foo</span><span class="special">&gt;</span> <span class="identifier">m_foo</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      The classes above fail to follow this rule. This doesn't mean that contained
+      objects can't contain <code class="literal">proxy_ptr</code> instances. For example,
+      the classes below are fine:
+    </p>
+<pre class="programlisting"><span class="comment">// inheritance - ok</span>
+<span class="keyword">class</span> <span class="identifier">derived_from_Foo</span><span class="special">:</span> <span class="keyword">public</span> <span class="identifier">Foo</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="identifier">derived_from_Foo</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_init</span> <span class="identifier">eini</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="identifier">Bar</span><span class="special">&gt;</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">Foo</span><span class="special">(</span><span class="identifier">eini</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">{}</span>
+<span class="special">};</span>
+
+
+<span class="comment">// member object - ok</span>
+<span class="keyword">class</span> <span class="identifier">containing_Foo</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="identifier">containing_Foo</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_init</span> <span class="identifier">eini</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="identifier">Bar</span><span class="special">&gt;</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">m_foo</span><span class="special">(</span><span class="identifier">eini</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">{}</span>
+<span class="keyword">private</span><span class="special">:</span>
+  <span class="identifier">Foo</span> <span class="identifier">m_foo</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">// composition through std::unique_ptr - ok ( in this case )</span>
+<span class="keyword">class</span> <span class="identifier">containing_proxy_ptr_Foo</span>
+<span class="special">{</span>
+<span class="keyword">public</span>
+   <span class="identifier">containing_proxy_ptr_Foo</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_init</span> <span class="identifier">eini</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="identifier">Bar</span><span class="special">&gt;</span> <span class="identifier">b</span><span class="special">):</span>
+    <span class="identifier">m_foo</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">Foo</span><span class="special">(</span><span class="identifier">eini</span><span class="special">,</span> <span class="identifier">b</span><span class="special">))</span>
+  <span class="special">{}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">unique_ptr</span><span class="special">&lt;</span><span class="identifier">Foo</span><span class="special">&gt;</span> <span class="identifier">m_foo</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="how_they_work.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="entangled_ptr_sypnosis.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

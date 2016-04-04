@@ -1,0 +1,207 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>How they work</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.SmartPtr.ProxyPtr">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.SmartPtr.ProxyPtr">
+<link rel="prev" href="../index.html" title="Chapter&#160;1.&#160;Boost.SmartPtr.ProxyPtr">
+<link rel="next" href="when_and_how_not_to_use_them.html" title="When and how not to use them">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="when_and_how_not_to_use_them.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_smartptr_proxyptr.how_they_work"></a><a class="link" href="how_they_work.html" title="How they work">How they work</a>
+</h2></div></div></div>
+<p>
+      Suppose a class Foo has a <code class="literal">proxy_ptr&lt;Bar&gt;</code> instance
+      member:
+    </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">Bar</span><span class="special">;</span>
+
+<span class="keyword">class</span> <span class="identifier">Foo</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">Foo</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_init</span> <span class="identifier">eini</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="identifier">Bar</span><span class="special">&gt;</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">m_bar</span><span class="special">(</span><span class="identifier">eini</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="keyword">void</span> <span class="identifier">do_something</span><span class="special">();</span>
+    <span class="keyword">void</span> <span class="identifier">do_something_else</span><span class="special">();</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">proxy_ptr</span><span class="special">&lt;</span><span class="identifier">Bar</span><span class="special">&gt;</span> <span class="identifier">m_bar</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      When a class contains any member of type <code class="literal">proxy_ptr</code>, like
+      class <code class="literal">Foo</code> above, then the first parameter of its constructor
+      must be of type <code class="literal">entangled_init</code>, which must be used to construct
+      its <code class="literal">proxy_ptr</code> members. In order to instantiate a class like
+      that you must use <code class="literal">make_entangled</code> function template. The
+      <code class="literal">make_entangled&lt;T&gt;</code> function instatiates the class
+      <code class="literal">T</code> by calling one of its constructor that can take a <code class="literal">entangled_init</code>
+      as the first argument and take the arguments passed to <code class="literal">make_entangled&lt;T&gt;</code>
+      as the remaining ones. If no such compatible constructor is available in class
+      <code class="literal">T</code>, then <code class="literal">make_entangled&lt;T&gt;</code> tries
+      instead a constructor that does not take the additional initial <code class="literal">entangled_init</code>
+      argument.
+    </p>
+<p>
+      The return type of <code class="literal">make_entangled&lt;T&gt;</code> is <code class="literal">entangled_ptr&lt;T&gt;</code>,
+      a class whose interface is very similiar to of <code class="literal">weak_ptr&lt;T&gt;</code>.
+      The use count of this <code class="literal">T</code>'s instance is initially equal to
+      zero, since <code class="literal">entangled_ptr</code> does not increment the use count
+      of its targets. This may seem strange at first. Objects constructed with <code class="literal">make_entangled</code>
+      are managed differently. They don't need a positive use count in order to stay
+      alive because another reference counter comes into play in this case. We can
+      call it <span class="emphasis"><em>entangled count</em></span>. It is equal to the number of
+      instances of <code class="literal">proxy_ptr</code> and <code class="literal">entangled_ptr</code>
+      that point to the object. However, keeping the entangled count greater than
+      zero is not enough to keep the object alive. And even if it is alive it does't
+      mean it is usable. Its more complex than that.
+    </p>
+<p>
+      This may seem against determinism. But note that the aim of <code class="literal">proxy_ptr</code>
+      is to enable deterministic destruction of the object it points to, not of the
+      object that contains it. You have to distinguish which classes require determinism
+      and which do not. <code class="literal">make_entangled</code> can only be used to instantiate
+      classes that do not require determinism.
+    </p>
+<p>
+      But, regardless of whether of these cathegories an object belong, and whether
+      it is or not alive, its <span class="underline">usability</span> is
+      still dictated by the use count. The object can only be safely used while its
+      use count is greater than zero. And that's why, just like <code class="literal">weak_ptr&lt;T&gt;</code>,
+      <code class="literal">entangled_ptr&lt;T&gt;</code> does not provide direct access to
+      the object. You need to instantiate a <code class="literal">shared_ptr&lt;Foo&gt;</code>:
+    </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">Bar</span><span class="special">&gt;</span> <span class="identifier">bar</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span><span class="identifier">Bar</span><span class="special">&gt;();</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="identifier">Foo</span><span class="special">&gt;</span> <span class="identifier">foo</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_entangled</span><span class="special">&lt;</span><span class="identifier">Foo</span><span class="special">&gt;(</span><span class="identifier">bar</span><span class="special">);</span>
+<span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">foo</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">0</span><span class="special">);</span>
+<span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">bar</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">Foo</span><span class="special">&gt;</span> <span class="identifier">locked_foo</span> <span class="special">=</span> <span class="identifier">foo</span><span class="special">.</span><span class="identifier">lock</span><span class="special">())</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">foo</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+    <span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">bar</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">2</span><span class="special">);</span>
+
+    <span class="identifier">locked_foo</span><span class="special">-&gt;</span><span class="identifier">do_something</span><span class="special">();</span>
+    <span class="identifier">locked_foo</span><span class="special">-&gt;</span><span class="identifier">do_something_else</span><span class="special">();</span>
+<span class="special">}</span>
+<span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">foo</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">0</span><span class="special">);</span>
+<span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">bar</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+</pre>
+<p>
+      Inside that <code class="literal">if</code> block above, <code class="literal">bar.use_count() ==
+      2</code> because when the use count of any object <code class="literal">X</code> becames
+      greater than zero then all <code class="literal">X</code>'s non null <code class="literal">proxy_ptr</code>
+      members also increments the use count of the objects they point to, and only
+      decrements it back when the use count of <code class="literal">X</code> becomes zero
+      again. If any of such <code class="literal">proxy_ptr</code> instances is unable to increment
+      the use count of its target, then this means it is not possible anymore to
+      use object <code class="literal">X</code>. For example:
+    </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">Bar</span><span class="special">&gt;</span> <span class="identifier">bar</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span><span class="identifier">Bar</span><span class="special">&gt;();</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="identifier">Foo</span><span class="special">&gt;</span> <span class="identifier">foo</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_entangled</span><span class="special">&lt;</span><span class="identifier">Foo</span><span class="special">&gt;(</span><span class="identifier">bar</span><span class="special">);</span>
+
+<span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">foo</span><span class="special">.</span><span class="identifier">lock</span><span class="special">());</span>
+<span class="identifier">bar</span><span class="special">.</span><span class="identifier">reset</span><span class="special">();</span>   <span class="comment">// Now the Bar instance is destroyed.</span>
+<span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">foo</span><span class="special">.</span><span class="identifier">lock</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">NULL</span><span class="special">);</span>
+</pre>
+<p>
+      Conversely, the use count of this <code class="literal">Bar</code> instance is guarranteed
+      to be non zero while the use count of this <code class="literal">Foo</code> instance
+      is non zero. This is why <code class="literal">proxy_ptr&lt;T&gt;</code> does't have
+      a <code class="literal">lock()</code> member function. It can afford to access the object
+      directly at any moment, except during the construction and destruction of the
+      object that contains it.
+    </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">Foo</span><span class="special">::</span><span class="identifier">do_something</span><span class="special">()</span> <span class="comment">// can not be called by Foo::Foo and Foo::~Foo</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">m_bar</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">&gt;</span> <span class="number">0</span><span class="special">);</span>
+    <span class="identifier">m_bar</span><span class="special">-&gt;</span><span class="identifier">foo</span><span class="special">();</span>
+    <span class="identifier">m_bar</span><span class="special">-&gt;</span><span class="identifier">bar</span><span class="special">();</span>
+<span class="special">}</span>
+</pre>
+<p>
+      It is only possible to increment the use count of an object if, and only if,
+      the object satisfies at least one of these conditions:
+    </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          Its use count is already greater than zero, or,
+        </li>
+<li class="listitem">
+          it satisfies <span class="underline">all</span> of these conditions:
+          <div class="orderedlist"><ol class="orderedlist" type="a">
+<li class="listitem">
+                It has been instantiated by <code class="literal">make_entangled</code>, and
+              </li>
+<li class="listitem">
+                its entangled count is greater than zero, and
+              </li>
+<li class="listitem">
+                all the non null <code class="literal">proxy_ptr</code> instance member it
+                contains point to objects whose use count can be incremented.
+              </li>
+</ol></div>
+        </li>
+</ol></div>
+<p>
+      The object is destroyed as soon as any smart pointer detect that the object's
+      use count cannot be incremented anymore.
+    </p>
+<p>
+      We can note a simetry between <code class="literal">shared_ptr</code> and <code class="literal">proxy_ptr</code>.
+      Let's call an object as <span class="emphasis"><em>usable</em></span> when its use count can
+      be incremented. This way, when an object <code class="literal">X</code> has a <code class="literal">shared_ptr</code>
+      to an object <code class="literal">Y</code>, note that if <code class="literal">X</code> is usable
+      then <code class="literal">Y</code> is usable. But when <code class="literal">X</code> has instead
+      a <code class="literal">proxy_ptr</code> to <code class="literal">Y</code> then the implication
+      is that if <code class="literal">Y</code> is not usable then <code class="literal">X</code> is
+      not usable. Once an object becomes unusable, so will immediately all the objects
+      that have any <code class="literal">proxy_ptr</code> referencing it, and all the objects
+      that have any <code class="literal">proxy_ptr</code> referencing any of these objectes,
+      and so on.
+    </p>
+<p>
+      However note that an object containing <code class="literal">proxy_ptr</code> is not
+      necessarily a non owner client. For example, consider the <a href="https://en.wikipedia.org/wiki/Adapter_pattern#Object_Adapter_pattern" target="_top">Object
+      Adapter design pattern</a>. An adapter is not supposed to decide whether
+      it owns or not the adaptee. It's responsability is just to adapt. Hence, by
+      using a <code class="literal">proxy_ptr</code> to reference the adaptee, the adapter
+      delegates to its client such decision about the adaptee ownership If the adapter's
+      client uses a <code class="literal">shared_ptr</code> to reference the adapter, <span class="emphasis"><em>i.e.</em></span>
+      if it owns the adapter, so will the adapter own the adaptee. If otherwise the
+      adapter's client uses a <code class="literal">entangled_ptr</code>, then the adapter
+      does't own the adaptee. And if the adapter's client uses a <code class="literal">proxy_ptr</code>,
+      then it delegates even further, to the adapter's client's client. The <code class="literal">proxy_ptr</code>
+      reflects the kind of pointer that holds the object that contains it. Hence
+      its name.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="when_and_how_not_to_use_them.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

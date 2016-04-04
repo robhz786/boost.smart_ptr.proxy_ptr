@@ -1,0 +1,366 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>The entangled_init, shared_init and shared_handle classes</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.SmartPtr.ProxyPtr">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.SmartPtr.ProxyPtr">
+<link rel="prev" href="proxy_ptr_sypnosis.html" title="proxy_ptr sypnosis">
+<link rel="next" href="appendix_implementation_detail.html" title="Appendix - Implementation detail">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="proxy_ptr_sypnosis.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="appendix_implementation_detail.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_smartptr_proxyptr.the_entangled_init_shared_init_a"></a><a class="link" href="the_entangled_init_shared_init_a.html" title="The entangled_init, shared_init and shared_handle classes">The
+    <code class="literal">entangled_init</code>, <code class="literal">shared_init</code> and <code class="literal">shared_handle</code>
+    classes</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="the_entangled_init_shared_init_a.html#boost_smartptr_proxyptr.the_entangled_init_shared_init_a.sypnosis">Sypnosis</a></span></dt>
+<dt><span class="section"><a href="the_entangled_init_shared_init_a.html#boost_smartptr_proxyptr.the_entangled_init_shared_init_a.as_an_alternative_to_enable_shar">As
+      an alternative to <code class="literal">enable_shared_from_this</code></a></span></dt>
+<dt><span class="section"><a href="the_entangled_init_shared_init_a.html#boost_smartptr_proxyptr.the_entangled_init_shared_init_a.different_objects_managed_by_the">Different
+      objects managed by the same reference counters</a></span></dt>
+</dl></div>
+<p>
+      The <code class="literal">entangled_init</code> class has been primaly been created in
+      order to establish how <code class="literal">proxy_ptr</code>'s instances are constructed.
+      However its has other uses as well. It can only be used in objects instantiated
+      with <code class="literal">make_soft</code> function template, or, as explained earlier,
+      in components of such objects. Analogously, <code class="literal">shared_init</code>
+      can only be used in objects or in components of object instantiated by <code class="literal">make_shared</code>.
+      Whilst <code class="literal">shared_handle</code> can be used in both cases. And analogous
+      to <code class="literal">make_entangled</code>, <code class="literal">make_shared&lt;T&gt;</code>
+      prefers to call a <code class="literal">T</code>'s constructor where it can add a <code class="literal">shared_init</code>
+      as the first argument, forwarding those it receive as the remaining one.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_smartptr_proxyptr.the_entangled_init_shared_init_a.sypnosis"></a><a class="link" href="the_entangled_init_shared_init_a.html#boost_smartptr_proxyptr.the_entangled_init_shared_init_a.sypnosis" title="Sypnosis">Sypnosis</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+    <span class="keyword">class</span> <span class="identifier">entangled_init</span> <span class="special">{</span>
+    <span class="keyword">public</span><span class="special">:</span>
+        <span class="identifier">entangled_init</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">entangled_init</span><span class="special">&amp;);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_shared_ptr</span><span class="special">(</span><span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_shared_ptr</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_entangled_ptr</span><span class="special">(</span><span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_entangled_ptr</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">weak_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_weak_ptr</span><span class="special">(</span><span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">weak_ptr</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_weak_ptr</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">*);</span>
+    <span class="special">};</span> <span class="comment">// entangled_init class</span>
+
+    <span class="keyword">class</span> <span class="identifier">shared_init</span> <span class="special">{</span>
+    <span class="keyword">public</span><span class="special">:</span>
+        <span class="identifier">shared_init</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">shared_init</span><span class="special">&amp;);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_shared_ptr</span><span class="special">(</span><span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_shared_ptr</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_entangled_ptr</span><span class="special">(</span><span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_entangled_ptr</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">weak_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_weak_ptr</span><span class="special">(</span><span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">weak_ptr</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_weak_ptr</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">*);</span>
+    <span class="special">};</span> <span class="comment">// shared_init class</span>
+
+    <span class="keyword">class</span> <span class="identifier">shared_handle</span> <span class="special">{</span>
+    <span class="keyword">public</span><span class="special">:</span>
+        <span class="identifier">shared_handle</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">shared_handle</span><span class="special">&amp;);</span>
+        <span class="identifier">shared_handle</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">shared_init</span><span class="special">&amp;);</span>
+        <span class="identifier">shared_handle</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">entangled_init</span><span class="special">&amp;);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_shared_ptr</span><span class="special">(</span><span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_shared_ptr</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_entangled_ptr</span><span class="special">(</span><span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">entangled_ptr</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_entangled_ptr</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">weak_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_weak_ptr</span><span class="special">(</span><span class="identifier">T</span><span class="special">*);</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="identifier">weak_ptr</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">reinterpret_as_weak_ptr</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">*);</span>
+    <span class="special">};</span> <span class="comment">// shared_handle class</span>
+<span class="special">}</span> <span class="comment">// namespace boost</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_smartptr_proxyptr.the_entangled_init_shared_init_a.as_an_alternative_to_enable_shar"></a><a class="link" href="the_entangled_init_shared_init_a.html#boost_smartptr_proxyptr.the_entangled_init_shared_init_a.as_an_alternative_to_enable_shar" title="As an alternative to enable_shared_from_this">As
+      an alternative to <code class="literal">enable_shared_from_this</code></a>
+</h3></div></div></div>
+<p>
+        An object can use the <code class="literal">entangled_init</code> or <code class="literal">shared_init</code>
+        or <code class="literal">shared_handle</code> with which it has been constructed in
+        order to instantiate a <code class="literal">shared_ptr</code> that points to itself:
+      </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">some_class</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">some_class</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_handle</span> <span class="identifier">hdl</span><span class="special">):</span> <span class="identifier">m_hdl</span><span class="special">(</span><span class="identifier">hdl</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="keyword">void</span> <span class="identifier">test</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">some_class</span><span class="special">&gt;</span> <span class="identifier">sp_this</span> <span class="special">=</span> <span class="identifier">m_hdl</span><span class="special">.</span><span class="identifier">reinterpret_as_shared_ptr</span><span class="special">(</span><span class="keyword">this</span><span class="special">);</span>
+        <span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">sp_this</span><span class="special">.</span><span class="identifier">get</span><span class="special">()</span> <span class="special">==</span> <span class="keyword">this</span><span class="special">);</span>
+    <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_handle</span> <span class="identifier">m_hdl</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        The use <code class="literal">enable_shared_this</code> can painfull when you need
+        to use inheritance as described <a href="http://stackoverflow.com/questions/12790859/bad-weak-pointer-when-base-and-derived-class-both-inherit-from-boostenable-sha" target="_top">here</a>.
+        On the other hand, this is new solution is quite straightforward to deal
+        with multiple inheritance:
+      </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">base_1</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">base_1</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_handle</span> <span class="identifier">hdl</span><span class="special">):</span> <span class="identifier">m_hdl</span><span class="special">(</span><span class="identifier">hdl</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="keyword">void</span> <span class="identifier">in_base_1</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">base_1</span><span class="special">&gt;</span> <span class="identifier">sp_this</span> <span class="special">=</span> <span class="identifier">m_hdl</span><span class="special">.</span><span class="identifier">reinterpret_as_shared_ptr</span><span class="special">(</span><span class="keyword">this</span><span class="special">);</span>
+        <span class="comment">//...</span>
+    <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_handle</span> <span class="identifier">m_hdl</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">class</span> <span class="identifier">base_2</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">base_2</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_handle</span> <span class="identifier">hdl</span><span class="special">):</span> <span class="identifier">m_hdl</span><span class="special">(</span><span class="identifier">hdl</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="keyword">void</span> <span class="identifier">in_base_2</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">base_2</span><span class="special">&gt;</span> <span class="identifier">sp_this</span> <span class="special">=</span> <span class="identifier">m_hdl</span><span class="special">.</span><span class="identifier">reinterpret_as_shared_ptr</span><span class="special">(</span><span class="keyword">this</span><span class="special">);</span>
+        <span class="comment">// ...</span>
+    <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_handle</span> <span class="identifier">m_hdl</span><span class="special">;</span>
+<span class="special">};</span>
+
+
+<span class="keyword">class</span> <span class="identifier">child_class</span><span class="special">:</span> <span class="keyword">public</span> <span class="identifier">base_1</span><span class="special">,</span> <span class="keyword">public</span> <span class="identifier">base_2</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">child_class</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_handle</span> <span class="identifier">hdl</span><span class="special">):</span>
+        <span class="identifier">base_1</span><span class="special">(</span><span class="identifier">hdl</span><span class="special">),</span>
+        <span class="identifier">base_2</span><span class="special">(</span><span class="identifier">hdl</span><span class="special">),</span>
+        <span class="identifier">m_hdl</span><span class="special">(</span><span class="identifier">hdl</span><span class="special">)</span>
+    <span class="special">{</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">in_child</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">child_class</span><span class="special">&gt;</span> <span class="identifier">sp_this</span> <span class="special">=</span> <span class="identifier">m_hdl</span><span class="special">.</span><span class="identifier">reinterpret_as_shared_ptr</span><span class="special">(</span><span class="keyword">this</span><span class="special">);</span>
+        <span class="comment">// ...</span>
+    <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_handle</span> <span class="identifier">m_hdl</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          <code class="literal">reinterpret_as_shared_ptr</code> member function template is
+          not able to magically convert any pointer to the proper corresponding
+          <code class="literal">shared_ptr</code>. The <code class="literal">shared_ptr</code> it returns
+          is associated with same object it took as argument, but also associated
+          with the reference counter of the object constructed with this <code class="literal">entangled_init</code>
+          or <code class="literal">shared_init</code>. It's the <span class="underline">user's
+          responsibility</span> to ensure that one corresponds to the other.
+        </p></td></tr>
+</table></div>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          <code class="literal">entangled_init</code>, <code class="literal">shared_init</code> and
+          <code class="literal">shared_handle</code> instances must not be used during the
+          destruction of the object that has been constructed with it. <code class="literal">entangled_init::reinterpret_as_shared_ptr</code>
+          must not be used during the construction.
+        </p></td></tr>
+</table></div>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Dont store <code class="literal">entangled_init</code>, <code class="literal">shared_init</code>
+          and <code class="literal">shared_init</code> member variables as references, for
+          they become dangling. They are designed to the stored by value.
+        </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_smartptr_proxyptr.the_entangled_init_shared_init_a.different_objects_managed_by_the"></a><a class="link" href="the_entangled_init_shared_init_a.html#boost_smartptr_proxyptr.the_entangled_init_shared_init_a.different_objects_managed_by_the" title="Different objects managed by the same reference counters">Different
+      objects managed by the same reference counters</a>
+</h3></div></div></div>
+<p>
+        You can also you <code class="literal">reinterpret_as_shared_ptr</code> member function
+        to instantiate a <code class="literal">shared_ptr</code> that points to a member object:
+      </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">foo</span><span class="special">{}</span>
+
+<span class="keyword">class</span> <span class="identifier">bar</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">bar</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_handle</span> <span class="identifier">hdl</span><span class="special">):</span> <span class="identifier">m_hdl</span> <span class="special">{}</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">foo</span><span class="special">&gt;</span> <span class="identifier">get_foo</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">m_hdl</span><span class="special">.</span><span class="identifier">reinterpret_as_shared_ptr</span><span class="special">(&amp;</span><span class="identifier">m_foo</span><span class="special">);</span>
+    <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_handle</span> <span class="identifier">m_hdl</span><span class="special">;</span>
+    <span class="identifier">foo</span> <span class="identifier">m_foo</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        The above solution is more efficient in term of memory, and performance that
+        if the type <code class="literal">Bar::foo</code> would instead be <code class="literal">shared_ptr&lt;Foo&gt;</code>,
+        because only one memory allocation is done in order to instantiate both
+        <code class="literal">Bar</code> and <code class="literal">Foo</code>.
+      </p>
+<p>
+        But another advantage would also appear if that <code class="literal">Foo</code> had
+        a cyclic reference to this <code class="literal">Bar</code>. If <code class="literal">Bar::foo</code>
+        were <code class="literal">shared_ptr&lt;Foo&gt;</code> then it may happen that this
+        <code class="literal">Bar</code> instance is destroyed before this <code class="literal">Foo</code>
+        instance. This could lead to a dangling reference (if <code class="literal">Foo</code>
+        used raw pointer to <code class="literal">Bar</code>), or to an unsuitable throw of
+        exception ( if <code class="literal">Foo</code> used a <code class="literal">weak_ptr&lt;Bar&gt;</code>.
+      </p>
+<p>
+        However <code class="literal">foo</code> could also be a <code class="literal">std::unique_ptr&lt;Foo&gt;</code>.
+        This could be used if <code class="literal">Foo</code> where some abstract class. But
+        you have to ensure that the contained object (the <code class="literal">Foo</code>
+        instance ) is destroyed during the destruction of the container.
+      </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+          The argument passed to <code class="literal">reinterpret_as_shared_ptr</code>, <code class="literal">reinterpret_as_weak_ptr</code>
+          and <code class="literal">reinterpret_as_entangled_ptr</code> member function templates
+          must be nulll or point to an object that will be destroyed during the destruction
+          of the object that has been constructed by this <code class="literal">shared_handle</code>
+          ( or <code class="literal">shared_init</code>, or <code class="literal">entangled_init</code>
+          ) instance. For example:
+        </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">buggy_bar</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">buggy_bar</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_handle</span> <span class="identifier">hdl</span><span class="special">):</span>
+        <span class="identifier">m_hdl</span><span class="special">(</span><span class="identifier">hdl</span><span class="special">)</span>
+        <span class="identifier">m_foo</span><span class="special">(</span><span class="identifier">foo_factory</span><span class="special">())</span>
+    <span class="special">{}</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">foo</span><span class="special">&gt;</span> <span class="identifier">get_foo</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">m_hdl</span><span class="special">.</span><span class="identifier">reinterpret_as_shared_ptr</span><span class="special">(</span><span class="identifier">m_foo</span><span class="special">.</span><span class="identifier">get</span><span class="special">());</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">clear</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="identifier">m_foo</span><span class="special">.</span><span class="identifier">clear</span><span class="special">();</span> <span class="comment">// BAD: The shared_ptr&lt;foo&gt; returned from</span>
+                       <span class="comment">// get_foo() now is a dangling pointer</span>
+    <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_handle</span> <span class="identifier">m_hdl</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">unique_ptr</span><span class="special">&lt;</span><span class="identifier">foo</span><span class="special">&gt;</span> <span class="identifier">m_foo</span><span class="special">;</span>
+<span class="special">};</span>
+
+
+<span class="keyword">class</span> <span class="identifier">good_bar</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">good_bar</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_handle</span> <span class="identifier">hdl</span><span class="special">):</span>
+        <span class="identifier">m_hdl</span><span class="special">(</span><span class="identifier">hdl</span><span class="special">)</span>
+        <span class="identifier">m_foo</span><span class="special">(</span><span class="identifier">foo_factory</span><span class="special">())</span>
+    <span class="special">{}</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">foo</span><span class="special">&gt;</span> <span class="identifier">get_foo</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">m_hdl</span><span class="special">.</span><span class="identifier">reinterpret_as_shared_ptr</span><span class="special">(</span><span class="identifier">m_foo</span><span class="special">.</span><span class="identifier">get</span><span class="special">());</span>
+    <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_handle</span> <span class="identifier">m_hdl</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">unique_ptr</span><span class="special">&lt;</span><span class="identifier">foo</span><span class="special">&gt;</span> <span class="identifier">m_foo</span><span class="special">;</span> <span class="comment">// destroyed only in ~good_bar(), good.</span>
+<span class="special">};</span>
+</pre>
+</td></tr>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="proxy_ptr_sypnosis.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="appendix_implementation_detail.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

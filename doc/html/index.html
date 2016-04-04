@@ -1,0 +1,128 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;1.&#160;Boost.SmartPtr.ProxyPtr</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.SmartPtr.ProxyPtr">
+<link rel="next" href="boost_smartptr_proxyptr/how_they_work.html" title="How they work">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_smartptr_proxyptr/how_they_work.html"><img src="../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="boost_smartptr_proxyptr"></a>Chapter&#160;1.&#160;Boost.SmartPtr.ProxyPtr</h2></div>
+<div><div class="legalnotice">
+<a name="boost_smartptr_proxyptr.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="index.html#boost_smartptr_proxyptr.rationale">Rationale</a></span></dt>
+<dt><span class="section"><a href="boost_smartptr_proxyptr/how_they_work.html">How they work</a></span></dt>
+<dt><span class="section"><a href="boost_smartptr_proxyptr/when_and_how_not_to_use_them.html">When
+    and how <span class="underline">not</span> to use them</a></span></dt>
+<dt><span class="section"><a href="boost_smartptr_proxyptr/entangled_ptr_sypnosis.html"><code class="literal">entangled_ptr</code>
+    sypnosis</a></span></dt>
+<dt><span class="section"><a href="boost_smartptr_proxyptr/proxy_ptr_sypnosis.html"><code class="literal">proxy_ptr</code>
+    sypnosis</a></span></dt>
+<dt><span class="section"><a href="boost_smartptr_proxyptr/the_entangled_init_shared_init_a.html">The
+    <code class="literal">entangled_init</code>, <code class="literal">shared_init</code> and <code class="literal">shared_handle</code>
+    classes</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_smartptr_proxyptr/the_entangled_init_shared_init_a.html#boost_smartptr_proxyptr.the_entangled_init_shared_init_a.sypnosis">Sypnosis</a></span></dt>
+<dt><span class="section"><a href="boost_smartptr_proxyptr/the_entangled_init_shared_init_a.html#boost_smartptr_proxyptr.the_entangled_init_shared_init_a.as_an_alternative_to_enable_shar">As
+      an alternative to <code class="literal">enable_shared_from_this</code></a></span></dt>
+<dt><span class="section"><a href="boost_smartptr_proxyptr/the_entangled_init_shared_init_a.html#boost_smartptr_proxyptr.the_entangled_init_shared_init_a.different_objects_managed_by_the">Different
+      objects managed by the same reference counters</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_smartptr_proxyptr/appendix_implementation_detail.html">Appendix
+    - Implementation detail</a></span></dt>
+</dl>
+</div>
+<h2>
+<a name="boost_smartptr_proxyptr.h0"></a>
+    <span class="phrase"><a name="boost_smartptr_proxyptr.the_entangled_ptr_and_proxy_ptr_"></a></span><a class="link" href="index.html#boost_smartptr_proxyptr.the_entangled_ptr_and_proxy_ptr_">The <code class="literal">entangled_ptr</code>
+    and <code class="literal">proxy_ptr</code> class templates</a>
+  </h2>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+      This documents is just a proposal. Nothing described here makes part of Boost
+      C++ library.
+    </p></td></tr>
+</table></div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_smartptr_proxyptr.rationale"></a><a class="link" href="index.html#boost_smartptr_proxyptr.rationale" title="Rationale">Rationale</a>
+</h2></div></div></div>
+<p>
+      Shared ownership is criticized for hindering determinism. It is generally agreed
+      that if the destruction time of an object is expected to be deterministic,
+      then it should have only one owner. But sometimes the object has to be managed
+      by <code class="literal">shared_ptr</code>. Perhaps because it has to have multiple clients.
+    </p>
+<p>
+      The purpose of <code class="literal">entangled_ptr</code> and <code class="literal">proxy_ptr</code>
+      smart pointers is to make possible <span class="emphasis"><em>unique ownership with multifold
+      clientship</em></span> to an object managed by <code class="literal">shared_ptr</code>.
+      By that I mean that there are many clients, but only one, the one designated
+      as the owner, has a <code class="literal">shared_ptr</code> referencing the object. By
+      client I usually mean an object, but perhaps it could also mean an execution
+      scope - like when the pointer is stack allocated.
+    </p>
+<p>
+      But for sake of feasibility, let's not consider the <code class="literal">shared_ptr</code>
+      instances that live very briefly, like those stack allocated that are used
+      by the functions to access the object. These are almost unavoidable. They may
+      delay the destruction of object, but only sligtly, as long as we ensure their
+      briefness.
+    </p>
+<p>
+      Now, the other clients that possibly live for long or unknown duration can't
+      use <code class="literal">shared_ptr</code>, nor anything that block the destruction
+      of the object. If you can afford to use <code class="literal">weak_ptr</code>, then the
+      goal is achieved. The object is destroyed as soon as its owner is, or, as said,
+      just a little bit later. However, when using <code class="literal">weak_ptr</code>, once
+      the object has been destroyed, if the client can't handle this locally, then
+      it basically has to either throw an exception or return an error code. You
+      don't want to return a code because this complicates the implementation. Nor
+      should you throw an exception, because this is not an exceptional circumstance,
+      considerating that our goal is precisely to allow the object to be destroyed
+      before the non owner client. And not only unsuitable, both solutions are sometimes
+      even impossible, like when overriding a virtual function that promises not
+      to throw this type of exception and not to return this code.
+    </p>
+<p>
+      So, unless you are in a cyclic reference, I propose you to use instead <code class="literal">proxy_ptr</code>
+      in non owner clients that can't handle the destruction of the object, and
+      <code class="literal">entangled_ptr</code> on those that can. The former kind of delegates
+      the handling to the later.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: April 04, 2016 at 13:03:42 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_smartptr_proxyptr/how_they_work.html"><img src="../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Appendix - Implementation detail</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.SmartPtr.ProxyPtr">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.SmartPtr.ProxyPtr">
+<link rel="prev" href="the_entangled_init_shared_init_a.html" title="The entangled_init, shared_init and shared_handle classes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="the_entangled_init_shared_init_a.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_smartptr_proxyptr.appendix_implementation_detail"></a><a class="link" href="appendix_implementation_detail.html" title="Appendix - Implementation detail">Appendix
+    - Implementation detail</a>
+</h2></div></div></div>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        This is just a propose. There is actually no current implementation. This
+        section just expose a broadly idea that the proposer had in mind. The final
+        implementation will possibly be quite different, or may not even be possible
+      </p></td></tr>
+</table></div>
+<p>
+      As you probably already know or have deduced, when an object is managed by
+      <code class="literal">shared_ptr</code>, <code class="literal">weak_ptr</code>, <code class="literal">entangled_ptr</code>
+      or <code class="literal">proxy_ptr</code>, there must be some other underlying object
+      that is responsible for keeping the stuffs related to such managment. Thing
+      like the reference counters, the deleters, etc. Sometimes this object is referedes
+      as <span class="emphasis"><em>control block</em></span>. Now, when such underlying object is
+      instantiated by <code class="literal">make_soft</code>, it is of a different type of
+      the one instantiated by <code class="literal">make_shared</code>. Let's call these types
+      as <span class="emphasis"><em>entangled control block</em></span> and <span class="emphasis"><em>shared control
+      block</em></span>, respectevely. Both types inherit from a single abstract class.
+      Let's call it as <span class="emphasis"><em>abstract control block</em></span>. The <code class="literal">shared_ptr</code>,
+      <code class="literal">weak_ptr</code>, <code class="literal">entangled_ptr</code> and <code class="literal">proxy_ptr</code>
+      instances contains a pointer to the object they managed, and also to its corresponding
+      <span class="emphasis"><em>control block</em></span>. This pointer is of type <span class="emphasis"><em>abstract
+      control block</em></span>.
+    </p>
+<p>
+      Internally, <code class="literal">proxy_init</code> is basically just a pointer to a
+      <span class="emphasis"><em>entangled control block</em></span>. And the entangled control block
+      contains a pointer to the first <code class="literal">proxy_ptr</code> instance that
+      was constructed with the its corresponding <code class="literal">proxy_init</code>. And
+      this <code class="literal">proxy_ptr</code> instance contains a pointer to the second
+      one, and so on. It's a linked list. As a <code class="literal">proxy_ptr</code> instance
+      is constructed, it insert itsef into this list. That's why <code class="literal">proxy_ptr</code>
+      constructor requires a <code class="literal">proxy_init</code>.
+    </p>
+<p>
+      Note that no additional memory allocation is needed to fill this list. After
+      all, the nodes of the list - the <code class="literal">proxy_ptr</code> instances - are
+      already in the memory block allocated for the managed object. Note also that
+      this list is fill during the construction of the managed object, a period that
+      we can assume that there is only one thread accessing it. After that, the list
+      is never changed.
+    </p>
+<p>
+      The iteration over this list is also never supposed to be done by two thread
+      at the same time. There are two situations that causes this. One is when the
+      use count is incremented from zero to one. If a second thread also attemps
+      to increment the used count meanwhile, it has to wait until the first thread
+      finish its incremental. The other is when the use count is decremented from
+      one to zero.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="the_entangled_init_shared_init_a.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+</body>
+</html>
