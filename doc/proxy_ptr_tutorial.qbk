@@ -108,7 +108,7 @@ during the construction and destruction of the object that contains it.
        m_bar->bar();
    }
 ```
-It is only possible to increment the use count of an object if, 
+It is only possible to increment the use count of an object if,
 and only if, the object satisfies at least one of these conditions:
 
 # Its use count is already greater than zero, or,
@@ -121,30 +121,43 @@ and only if, the object satisfies at least one of these conditions:
 The object is destroyed as soon as any smart pointer detect
 that the object's use count cannot be incremented anymore.
 
+If an object created by =make_entangled= does not contain any
+=proxy_ptr= then simply keeping its entangled count positive
+is enought to keep it alive. This may be necessary when one
+needs to manage a mock or dummy object with an =entangled_ptr=.
+
 We can note a simetry between =shared_ptr= and =proxy_ptr=.
 Let's call an object as /usable/ when its use count can be incremented.
 This way, when an object =X= has a =shared_ptr= to an object =Y=,
-note that if =X= is usable then =Y= is usable.
+this implies that if =X= is usable then =Y= is usable.
 But when =X= has instead a =proxy_ptr= to =Y= then the
 implication is that if =Y= is not usable then =X= is not usable.
 Once an object becomes unusable, so will immediately all the objects
 that have any =proxy_ptr= referencing it, and all the objects that
 have any =proxy_ptr= referencing any of these objectes, and so on.
 
-However note that an object containing =proxy_ptr= is not necessarily a non
-owner client. For example, consider the
+However note that an object containing =proxy_ptr= is not necessarily a
+non owner client. It may also be the owner, or be one of many owners,
+in case the ownership is shared. [/This will depend of how it is used.]
+Consider the
 [@https://en.wikipedia.org/wiki/Adapter_pattern#Object_Adapter_pattern
- Object Adapter design pattern].
+ Object Adapter design pattern] for example.
 An adapter is not supposed to decide whether it owns or not the adaptee.
-It's responsability is just to adapt. 
+It's responsability is just to adapt.
 Hence, by using a =proxy_ptr= to reference the adaptee, the adapter
-delegates to its client such decision about the adaptee ownership
-If the adapter's client uses a =shared_ptr= to reference the adapter,
+gets rid of such concern.
+
+If, for example, the adapter's client uses a =shared_ptr= to reference the adapter,
 /i.e./ if it owns the adapter, so will the adapter own the adaptee.
-If otherwise the adapter's client uses a =entangled_ptr=, then
-the adapter does't own the adaptee. And if the adapter's client uses a
-=proxy_ptr=, then it delegates even further, to the adapter's client's client.
+If otherwise all the adapter's clients use a =entangled_ptr=,
+nd the adaptee has not been created with =make_entangled=,
+then the adapter does´t own the adaptee.
+
+[/
+If the adapter'=proxy_ptr=, then it delegates even further, to the adapter's client's client.
 The =proxy_ptr= reflects the kind of pointer that holds the object
 that contains it. Hence its name.
+]
+
 
 [endsect]

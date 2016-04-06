@@ -114,9 +114,11 @@ been constructed with in order to instantiate a =shared_ptr= that points to itse
   };
   
 ```
-The use =enable_shared_this= can painfull when you need to use inheritance as described
-[@http://stackoverflow.com/questions/12790859/bad-weak-pointer-when-base-and-derived-class-both-inherit-from-boostenable-sha here]. On the other hand, this is new solution is quite
-straightforward to deal with multiple inheritance: 
+Of course, =enable_shared_this= cad do this too,
+but it can painfull when you need to use inheritance as described
+[@http://stackoverflow.com/questions/12790859/bad-weak-pointer-when-base-and-derived-class-both-inherit-from-boostenable-sha here].
+On the other hand, this is new solution is quite
+straightforward to deal with multiple inheritance:
 ```
   class base_1
   {

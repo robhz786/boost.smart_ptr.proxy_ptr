@@ -14,9 +14,9 @@ reason to be managed by =shared_ptr=. Perhaps because it has
 to have multiple clients.
 
 The purpose of =entangled_ptr= and =proxy_ptr= smart pointers is
-to make possible /unique ownership with multifold clientship/ 
+to make possible /unique ownership with multifold clientship/
 to an object managed by =shared_ptr=. By that I mean that
-there are many clients, but only one, the one designated 
+there are many clients, but only one, the one designated
 as the owner, has a =shared_ptr= referencing the object.
 By client of an object I usually mean another object, that
 references the former one. But perhaps it could also mean
@@ -29,28 +29,28 @@ soon decrement it back. This way, we tolerate, for example
 stack allocated =shared_ptr= instances used by the functions
 to briefly access the object. They is almost unavoidable.
 This may decrease the determinism, by making the object to
-be destroyed a little bit later than expected, but only sligtly, 
+be destroyed a little bit later than expected, but only sligtly,
 as long as you ensure the briefness of such increments.
 
-So our concern is the clients that live for long or unknown
-duration. This document is not intended to guide you how to 
-decide which of them is the owner. This is up to you.
-But it may help you to implement the non owner clients.
-These ones, by definition, can't use use =shared_ptr= to
-reference the object. Nor should they use raw pointers or
-references, since they may became dangling. So the remaining
-option is =weak_ptr=, that is able to tell whether it is still
-possible to use the object. But in case it is not possible,
-what should the client do ? If it can't handle this locally,
-then it basically has to either throw an exception or return an
-error code. You don't want to return an error code because this
-complicates the implementation. Nor should you throw an exception,
-because this is not an exceptional circumstance, considering that
-our goal is precisely to allow the object to be destroyed before
-the non owner client. And not only unsuitable, both solutions are
-sometimes even impossible, like when overriding a virtual function
-that promises not to throw this type of exception and not to return
-this kind of code.
+So our concern is the clients that live for long or unknown duration.
+This document is not intended to guide you how to decide which of
+them is the owner - this is up to you - but just to help you how
+to implement the non owner clients.
+These ones, by definition, can't use use =shared_ptr= to reference
+the object. Nor should they use raw pointers or references,
+since they may became dangling.
+So the remaining option is =weak_ptr=, that is able to tell whether
+it is still possible to use the object.
+But in case it is not possible, what should the client do ?
+If it can't handle this locally, then it basically has to either
+throw an exception or return an error code.
+You don't want to return an error code because this complicates the implementation.
+Nor should you throw an exception, because this is not an exceptional circumstance,
+considering that our goal is precisely to allow the object to be destroyed before
+the non owner client.
+And not only unsuitable, both solutions are sometimes even impossible,
+like when overriding a virtual function that promises not to throw this
+type of exception and not to return this kind of code.
 
 So, unless you are in a cyclic reference, I propose you to use
 instead =proxy_ptr= in non owner clients that can't handle the
