@@ -9,51 +9,52 @@
 Shared ownership is criticized for hindering determinism.
 It is generally agreed that if the destruction time of
 an object is expected to be deterministic, then it should
-have only one owner. But sometimes the object has to be
-managed by =shared_ptr=. Perhaps because it has to have
-multiple clients.
+have only one owner. But sometimes the object has for some
+reason to be managed by =shared_ptr=. Perhaps because it has
+to have multiple clients.
 
 The purpose of =entangled_ptr= and =proxy_ptr= smart pointers is
 to make possible /unique ownership with multifold clientship/ 
 to an object managed by =shared_ptr=. By that I mean that
 there are many clients, but only one, the one designated 
 as the owner, has a =shared_ptr= referencing the object.
-By client I usually mean an object, but perhaps it could also 
-mean an execution scope - like when the pointer is stack allocated.
+By client of an object I usually mean another object, that
+references the former one. But perhaps it could also mean
+an execution scope - like when the pointer is stack allocated.
 
-But for sake of feasibility, let's not consider the [^shared_ptr]
-instances that live very briefly, like those stack allocated 
-that are used by the functions to access the object.
-These are almost unavoidable. They may delay the destruction of object,
-but only sligtly, as long as we ensure their briefness.
+But for sake of feasibility, let's not impose that the use
+count must always be equal to one. A client other than the
+designated onwer may increment the use count, as long as it
+soon decrement it back. This way, we tolerate, for example
+stack allocated =shared_ptr= instances used by the functions
+to briefly access the object. They is almost unavoidable.
+This may decrease the determinism, by making the object to
+be destroyed a little bit later than expected, but only sligtly, 
+as long as you ensure the briefness of such increments.
 
-[/
-This document is not intended to guide you how to decide
-which of clients will be owner. This is up to you.
-The purpose here is just to help you to implement the
-non owner clients.
-]
-
-Now, the other clients that possibly live for long or unknown
-duration can't use =shared_ptr=, nor anything that block the
-destruction of the object.
-If you can afford to use [^weak_ptr], then the goal is achieved.
-The object is destroyed as soon as its owner is, or, as said,
-just a little bit later. However, when using [^weak_ptr],
-once the object has been destroyed, if the client can't
-handle this locally, then it basically has to either throw an
-exception or return an error code.
-You don't want to return a code because this complicates the
-implementation. Nor should you throw an exception, because this is not
-an exceptional circumstance, considerating that our goal is precisely
-to allow the object to be destroyed before the non owner client.
-And not only unsuitable, both solutions are sometimes even
-impossible, like when overriding a virtual function that promises
-not to throw this type of exception and not to return this code.
+So our concern is the clients that live for long or unknown
+duration. This document is not intended to guide you how to 
+decide which of them is the owner. This is up to you.
+But it may help you to implement the non owner clients.
+These ones, by definition, can't use use =shared_ptr= to
+reference the object. Nor should they use raw pointers or
+references, since they may became dangling. So the remaining
+option is =weak_ptr=, that is able to tell whether it is still
+possible to use the object. But in case it is not possible,
+what should the client do ? If it can't handle this locally,
+then it basically has to either throw an exception or return an
+error code. You don't want to return an error code because this
+complicates the implementation. Nor should you throw an exception,
+because this is not an exceptional circumstance, considering that
+our goal is precisely to allow the object to be destroyed before
+the non owner client. And not only unsuitable, both solutions are
+sometimes even impossible, like when overriding a virtual function
+that promises not to throw this type of exception and not to return
+this kind of code.
 
 So, unless you are in a cyclic reference, I propose you to use
-instead [^proxy_ptr] in non owner clients that can't handle the
-destruction of the object, and [^entangled_ptr] on those that can.
+instead =proxy_ptr= in non owner clients that can't handle the
+destruction of the object, and =entangled_ptr= on those that can.
 The former kind of delegates the handling to the later.
 
 [endsect]

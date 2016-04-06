@@ -4,8 +4,8 @@
     http://www.boost.org/LICENSE_1_0.txt)
 ===============================================================================/]
 
-[section =proxy_ptr= sypnosis]
-
+[section The =proxy_ptr= class template]
+[h2 Sypnosis]
 ``
   namespace boost{
       template <class T> class proxy_ptr {

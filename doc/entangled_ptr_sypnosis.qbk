@@ -5,7 +5,8 @@
 ===============================================================================/]
 
 
-[section =entangled_ptr= sypnosis]
+[section The =entangled_ptr= class template]
+[h2 Sypnosis]
 ``
   namespace boost{
       template <class T> class entangled_ptr{
@@ -30,12 +31,18 @@
           template <class Y> entangled_ptr<Y>& operator=(const weak_ptr<Y>&);
       
           long use_count() const;
-          void expired() const;
+          bool expired() const;
           shared_ptr<T> lock() const;
           void reset();
           void swap(entangled_ptr&);
       }; // entangled_ptr class template
   } // namespace boost
 ``
+[h2 Members]
+
+[h3 expired]
+Check whether it is possible to increment the use count. And, if this is
+not the case, also destroy the object if it hasn't been destroyed already.
+
 [endsect]
 

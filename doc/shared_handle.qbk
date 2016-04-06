@@ -4,11 +4,11 @@
     http://www.boost.org/LICENSE_1_0.txt)
 ===============================================================================/]
 
-[section The [^entangled_init], [^shared_init] and [^shared_handle] classes]
+[section The =entangled_init=, =shared_init= and =shared_handle= classes]
 
-The [^entangled_init] class has been primaly been created in order to establish
-how [^proxy_ptr]'s instances are constructed. However its has other uses as well.
-It can only be used in objects instantiated with [^make_soft] function template,
+The =entangled_init= class has been primaly been created in order to establish
+how =proxy_ptr='s instances are constructed. However its has other uses as well.
+It can only be used in objects instantiated with =make_soft= function template,
 or, as explained earlier, in components of such objects.
 Analogously, =shared_init= can only be used in objects or in components of object
 instantiated by =make_shared=. Whilst =shared_handle= can be used in both cases.
@@ -93,10 +93,10 @@ those it receive as the remaining one.
 ```
 [endsect]
 
-[section As an alternative to [^enable_shared_from_this]]
+[section As an alternative to =enable_shared_from_this=]
 
-An object can use the [^entangled_init] or [^shared_init] or [^shared_handle] with which
-it has been constructed in order to instantiate a [^shared_ptr] that points to itself:
+An object can use the =entangled_init= or =shared_init= or =shared_handle= that it has
+been constructed with in order to instantiate a =shared_ptr= that points to itself:
 ```
   class some_class
   {
@@ -114,7 +114,7 @@ it has been constructed in order to instantiate a [^shared_ptr] that points to i
   };
   
 ```
-The use [^enable_shared_this] can painfull when you need to use inheritance as described
+The use =enable_shared_this= can painfull when you need to use inheritance as described
 [@http://stackoverflow.com/questions/12790859/bad-weak-pointer-when-base-and-derived-class-both-inherit-from-boostenable-sha here]. On the other hand, this is new solution is quite
 straightforward to deal with multiple inheritance: 
 ```
@@ -171,23 +171,23 @@ straightforward to deal with multiple inheritance:
 ```
 
 [warning
-[^reinterpret_as_shared_ptr] member function template is not able to
-magically convert any pointer to the proper corresponding [^shared_ptr].
-The [^shared_ptr] it returns is associated with same object it took as
+=reinterpret_as_shared_ptr= member function template is not able to
+magically convert any pointer to the proper corresponding =shared_ptr=.
+The =shared_ptr= it returns is associated with same object it took as
 argument, but also associated with the reference counter
-of the object constructed with this [^entangled_init] or [^shared_init].
+of the object constructed with this =entangled_init= or =shared_init=.
 It's the [_user's responsibility] to ensure that one corresponds to the other.
 ]
 
 [warning
-[^entangled_init], [^shared_init] and =shared_handle= instances must not be
+=entangled_init=, =shared_init= and =shared_handle= instances must not be
 used during the destruction of the object that has been constructed with it.
-[^entangled_init::reinterpret_as_shared_ptr] must not be used during the
+=entangled_init::reinterpret_as_shared_ptr= must not be used during the
 construction.
 ]
 
 [warning
-Dont store [^entangled_init], [^shared_init] and [^shared_init] member
+Dont store =entangled_init=, =shared_init= and =shared_init= member
 variables as references, for they become dangling. They are designed
 to the stored by value.
 ]
@@ -197,7 +197,7 @@ to the stored by value.
 
 [section Different objects managed by the same reference counters]
 
-You can also you [^reinterpret_as_shared_ptr] member function to instantiate
+You can also you =reinterpret_as_shared_ptr= member function to instantiate
 a =shared_ptr= that points to a member object:
 ``
   class foo{}
@@ -241,6 +241,7 @@ object that has been constructed by this =shared_handle= ( or =shared_init=,
 or =entangled_init= ) instance. For example:
 
 ``
+  //not ok
   class buggy_bar {
   public:
       buggy_bar(boost::shared_handle hdl):
@@ -264,7 +265,7 @@ or =entangled_init= ) instance. For example:
       std::unique_ptr<foo> m_foo;
   };
   
-  
+  // ok
   class good_bar {
   public:
       good_bar(boost::shared_handle hdl):
@@ -279,11 +280,10 @@ or =entangled_init= ) instance. For example:
   
   private:
       boost::shared_handle m_hdl;
-      std::unique_ptr<foo> m_foo; // destroyed only in ~good_bar(), good.
+      std::unique_ptr<foo> m_foo;
   };
 ``
 ]
- 
 
 [endsect]
 [endsect]
